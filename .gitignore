@@ -57,3 +57,10 @@ _build/
 
 
 output/
+
+# fork/docker-local
+docker/.docker-build/
+data/output/*
+!data/output/.gitkeep
+data/input/*
+!data/input/.gitkeep

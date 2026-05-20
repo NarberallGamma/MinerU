@@ -1,0 +1,112 @@
+# Локальный запуск MinerU (fork): официальный Dockerfile + GPU + тома data/output.
+# Запуск: ./run.sh build | ./run.sh up api
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            device_ids: ["0"]
+            capabilities: [compute, utility]
+
+x-mineru-image: &mineru_image
+  image: mineru:latest
+  build:
+    context: ./global
+    dockerfile: Dockerfile
+  environment:
+    MINERU_MODEL_SOURCE: local
+  ulimits:
+    memlock: -1
+    stack: 67108864
+  ipc: host
+  shm_size: "32gb"
+
+x-api-base: &api_base
+  <<: [*mineru_image, *gpu]
+  restart: unless-stopped
+  volumes:
+    - ../data/input:/data/input:ro
+    - ../data/output:/data/output
+
+name: mineru-docker
+
+services:
+  # Только сборка образа (модели качаются внутри Dockerfile)
+  image:
+    <<: *mineru_image
+    profiles: ["build"]
+    command: ["true"]
+
+  mineru-api:
+    <<: *api_base
+    profiles: ["api"]
+    container_name: mineru-api
+    ports:
+      - "${MINERU_API_PORT:-8000}:8000"
+    entrypoint: mineru-api
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  mineru-gradio:
+    <<: *api_base
+    profiles: ["gradio"]
+    container_name: mineru-gradio
+    ports:
+      - "${MINERU_GRADIO_PORT:-7860}:7860"
+    entrypoint: mineru-gradio
+    command:
+      - --server-name
+      - 0.0.0.0
+      - --server-port
+      - "7860"
+
+  mineru-openai-server:
+    <<: *api_base
+    profiles: ["openai-server"]
+    container_name: mineru-openai-server
+    ports:
+      - "${MINERU_OPENAI_PORT:-30000}:30000"
+    entrypoint: mineru-openai-server
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "30000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:30000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  mineru-router:
+    <<: *api_base
+    profiles: ["router"]
+    container_name: mineru-router
+    ports:
+      - "${MINERU_ROUTER_PORT:-8002}:8002"
+    entrypoint: mineru-router
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8002"
+      - --local-gpus
+      - auto
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s

@@ -30,6 +30,42 @@
 
 [English](README.md) | [简体中文](README_zh-CN.md)
 
+---
+
+## Fork: локальный Docker (ветка `fork/docker-local`)
+
+Обертка по аналогии с [stable-diffusion-webui-docker](https://github.com/AbdBarho/stable-diffusion-webui-docker): `docker/docker-compose.yml`, `docker/run.sh`, обход `credsStore` через `.docker-build/`.
+
+### Подзадачи
+
+| # | Задача | Статус | Команда / артефакт |
+|---|--------|--------|-------------------|
+| 1 | Ветка `fork/docker-local` | done | `git checkout fork/docker-local` |
+| 2 | Compose + `run.sh` + тома `data/` | done | `docker/docker-compose.yml`, `docker/run.sh` |
+| 3 | Официальная сборка образа `mineru:latest` | in progress | `cd docker && ./run.sh build` — лог: `agent-analyzes/2026/May/20_mineru_docker_test/build.log` |
+| 4 | Запуск REST API (профиль `api`) | pending | `./run.sh up api` → http://127.0.0.1:8000/docs |
+| 5 | Health-check | pending | `./run.sh health` |
+| 6 | Тестовые PDF в `data/input/` | done | `invoice_example.pdf`, `upd_example.pdf` |
+| 7 | Разбор PDF через API | pending | `./run.sh parse-examples` → `data/output/*.zip` |
+| 8 | (опционально) Gradio / router / openai-server | — | `./run.sh up gradio` и др. |
+
+### Быстрый старт (WSL, из корня форка)
+
+```bash
+cd /mnt/d/git/ai_forks/MinerU/docker
+chmod +x run.sh scripts/copy-example-pdfs.sh
+./run.sh build          # 30–90+ мин, модели в образе
+./run.sh up api
+./scripts/copy-example-pdfs.sh
+./run.sh parse-examples
+```
+
+Требования: Docker Desktop + NVIDIA Container Toolkit, GPU Volta+ (RTX 4080 подходит), ~20+ GB диска под образ и модели.
+
+Подробнее: [docker/README.md](docker/README.md).
+
+---
+
 <!-- hot link -->
 
 <p align="center">
